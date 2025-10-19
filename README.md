@@ -70,7 +70,8 @@ The track information consists of three null-terminated UTF-8 strings:
 ]
 ```
 
-Note: The "index" field is optional and automatically assigned based on array position.
+Note: The "index" field is optional. Speakers are either assigned based on the player's configuration or automatically assigned based on array position in the wired network.
+
 ## Usage
 
 ### Input Options
