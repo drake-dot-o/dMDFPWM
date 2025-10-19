@@ -1,13 +1,18 @@
 # dMDFPWM - Drake's Fork of MDFPWM
 
-**dMDFPWM** (Drake's MDFPWM) is a flexible container format, initially built as a fork of [Drucifer](https://github.com/drucifer-sc)'s [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
+**dMDFPWM**: (Drake's MDFPWM) is a flexible container format, initially built as a fork of [Drucifer](https://github.com/drucifer-sc)'s [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
+
+## **!!! NOTICE !!!**: **Part of the code in this repository has been generated/modified by AI 🤖 tools.**
+
+ While I have tried to review and validate the AI-generated content to the best of my own ability, this is a project that I undertook with a ***VERY*** limited understanding of audio from a software perspective. I am simply leaving this notice at the top for transparency. 
+ So, please don't flame me if it's kind of ugly. Any guidance or pointing out what is being done wrong is infinitely more helpful.
+ :)
 
 
+# So... what *exactly* is this and how do I use it?
+- **dMDFPWM** is a container format for audio tracks in ComputerCraft. **dMDFPWM files are not strictly mono or stereo** like normal dfpwm/mdfpwm files, and as an extent, - they hold a layer of audio for each channel/speaker - which means **you can play music in full surround with this as if it were an actual surround speaker setup in real life!**
 
-# What *exactly* is this and how do I use it?
-- **dMDFPWM** is a container format for audio tracks in ComputerCraft.
-- It layers multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this.
-  - This means that it supports **surround** sound speaker configurations (hello, 7.1!). The only limit on channels/speakers is ffmpeg's (or ComputerCraft's) limits.
+- It layers multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this. In an adjacent fashion to `MDFPWM`.
 
 ### If you want to skip all the boring technical stuff below, then all you need is: 
 
@@ -126,9 +131,27 @@ Although `dMDFPWM` is based on `MDFPWM3`, it is not (currently) backwards-compat
 
 `dMDFPWM` is licensed under the [GNU Lesser General Public License v2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
 
+This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+**You may:**
+- Use this software for any purpose, including commercial applications
+- Modify and distribute the source code
+- Link this library with proprietary software
+- Distribute modified versions under the same LGPL license
+- Use the library in your own projects without restriction
+- Credit Drucifer and/or myself in your projects that use this code for making it possible :)
+
+**You must:**
+- Include the original license text with your distribution
+- Include copyright notices and warranty disclaimers
+- Make source code available when distributing binaries
+- Clearly mark any modifications you make
+
 ## Credits
 
-`dMDFPWM` started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by [Drucifer](https://github.com/drucifer-sc) (...and notably also [Ale32bit](https://github.com/Ale32bit)'s projects based on the `MDFPWM3` spec, [Quartz](https://github.com/Ale32bit/Quartz) and [QuartzEncoder](https://github.com/Ale32bit/QuartzEncoder/), were a great help in understanding the audio), and has been extended with:
+`dMDFPWM` started out based on the [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) spec by [Drucifer](https://github.com/drucifer-sc), and has been extended with:
 - Flexible multi-channel support
 - JSON-based configuration for different surround layouts
 - Python encoder (requires ffmpeg)
+
+And finally, notably, shout out to [Ale32bit](https://github.com/Ale32bit)'s projects based on the `MDFPWM3` spec, [Quartz](https://github.com/Ale32bit/Quartz) and [QuartzEncoder](https://github.com/Ale32bit/QuartzEncoder/); they were a great help in understanding how the container itself works.
