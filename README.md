@@ -1,6 +1,6 @@
 # dMDFPWM - Drake's Fork of MDFPWM
 
-**dMDFPWM** (Drake's MDFPWM) is a flexible container format fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
+**dMDFPWM** (Drake's MDFPWM) is a flexible container format, initially built as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
 
 ## Key Differences from MDFPWM3
 
