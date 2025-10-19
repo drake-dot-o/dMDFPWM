@@ -10,7 +10,7 @@
 | **Channel Support** | Fixed stereo only | Arbitrary channels (2.0, 4.0, 5.1, etc.) |
 | **Chunk Size** | Fixed 12000 bytes | Configurable per channel |
 | **Bitrate** | Fixed 48kbps per channel | Variable bitrates per channel |
-| **Metadata** | Simple text fields | JSON-based structured metadata |
+| **Metadata** | Simple text fields | Simple text fields (artist/title/album) |
 | **Configuration** | Hardcoded stereo | JSON channel configuration |
 
 ## Format Specification
@@ -27,78 +27,53 @@
 │ - Channel Count (2 bytes, LE)       │
 │ - Chunk Size (2 bytes, LE)          │
 ├─────────────────────────────────────┤
-│ Metadata Section (Variable)         │
+│ Track Information (Variable)        │
 ├─────────────────────────────────────┤
-│ - Length (1 byte)                   │
-│ - JSON Metadata (UTF-8)             │
-├─────────────────────────────────────┤
-│ Channel Config Section (Variable)   │
-├─────────────────────────────────────┤
-│ - Length (1 byte)                   │
-│ - JSON Channel Config (UTF-8)       │
+│ - Artist (null-terminated UTF-8)    │
+│ - Title (null-terminated UTF-8)     │
+│ - Album (null-terminated UTF-8)     │
 ├─────────────────────────────────────┤
 │ Audio Payload (Interleaved DFPWM)   │
 └─────────────────────────────────────┘
 ```
 
-### JSON Metadata Structure
+### Track Information Format
 
-```json
-{
-  "artist": "Artist Name",
-  "title": "Track Title",
-  "album": "Album Name",
-  "sample_rate": 48000,
-  "duration": 123.45,
-  "encoder": "dMDFPWM Python Encoder"
-}
-```
+The track information consists of three null-terminated UTF-8 strings:
+- **Artist**: Performer or group name
+- **Title**: Song or track title
+- **Album**: Album or release name
 
 ### JSON Channel Configuration
 
 ```json
 [
   {
-    "index": 0,
     "name": "FL",
-    "bitrate": 48,
-    "filter": "lowpass=4000"
+    "filter": "highpass=50,lowpass=4000"
   },
   {
-    "index": 1,
     "name": "FR",
-    "bitrate": 48,
-    "filter": "lowpass=4000"
+    "filter": "highpass=50,lowpass=4000"
   }
 ]
-
 ```
+
+Note: The "index" field is optional and automatically assigned based on array position.
 ## Usage
 
-### Basic Encoding
+### Input Options
+- **Local file**: `/path/to/audio/file.wav`
+- **HTTP URL**: `http://example.com/audio/file.wav`
 
+### Interactive Mode (Recommended)
 ```bash
-# Standard stereo
-python dmdfpwm_encoder.py --input audio.wav --output output.dmdfpwm --config stereo_config.json
-
-# Quad surround with custom metadata
-python dmdfpwm_encoder.py \
-  --input surround.wav \
-  --output surround.dmdfpwm \
-  --config quad_config.json \
-  --metadata '{"artist": "Artist", "title": "Song", "album": "Album"}' \
-  --chunk-size 4500
+python dmdfpwm_encoder.py
 ```
 
-### Advanced Encoding Options
-
+### Command Line Mode
 ```bash
-python dmdfpwm_encoder.py \
-  --input input.wav \
-  --output output.dmdfpwm \
-  --config custom_config.json \
-  --chunk-size 6000 \
-  --metadata '{"artist": "Artist", "title": "Title", "album": "Album"}'
+python dmdfpwm_encoder.py --input audio.wav --output output.dmdfpwm --config configs/surround_7.1.json
 ```
 
 ## Technical Details
@@ -113,11 +88,11 @@ python dmdfpwm_encoder.py \
 While dMDFPWM extends MDFPWM3, the formats are not directly compatible due to:
 - Different magic bytes and header structure
 - Variable channel configurations
-- JSON-based metadata vs. simple text fields
+- Extended track information format
 
 ## License & Credits
 
-dMDFPWM is a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by Drucifer, extended with:
+dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by Drucifer, and has been extended with:
 - Flexible multi-channel support
 - JSON-based configuration
 - Python encoder
