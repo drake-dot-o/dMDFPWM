@@ -121,9 +121,6 @@ python dmdfpwm_encoder.py --input audio.wav --output output.dmdfpwm --config con
 
 ### Backward Compatibility
 Although `dMDFPWM` is based on `MDFPWM3`, it is not (currently) backwards-compatible.
-- Different magic bytes and header structure
-- Variable channel configurations
-- Extended track information format
 
 ## License
 
