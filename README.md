@@ -45,8 +45,20 @@ dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM
 │ - Album (null-terminated UTF-8)     │
 ├─────────────────────────────────────┤
 │ Audio Payload (Interleaved DFPWM)   │
+├─────────────────────────────────────┤
+│ - Channel 1 DFPWM Data             │
+│ - Channel 2 DFPWM Data             │
+│ - Channel N DFPWM Data             │
+│ - Configurable chunk sizes         │
+│ - Default: 12000 bytes per chunk   │
 └─────────────────────────────────────┘
 ```
+
+**Default Chunk Size**: 12000 bytes (1 second at 48kHz per channel)
+**Example Configurations**:
+- **Stereo (2.0)**: 2 channels × 6000 bytes = 12000 bytes per chunk
+- **Surround 5.1**: 6 channels × 2000 bytes = 12000 bytes per chunk
+- **Surround 7.1**: 8 channels × 1500 bytes = 12000 bytes per chunk
 
 ### Track Information Format
 
