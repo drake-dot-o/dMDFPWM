@@ -1,0 +1,15 @@
+[
+  {
+    "index": 0,
+    "name": "FL"
+  },
+  {
+    "index": 1,
+    "name": "FR"
+  },
+  {
+    "index": 2,
+    "name": "LFE",
+    "filter": "lowpass=120"
+  }
+]
