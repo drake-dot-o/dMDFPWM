@@ -1,0 +1,22 @@
+[
+  {
+    "index": 0,
+    "name": "FL",
+    "filter": "lowpass=4000"
+  },
+  {
+    "index": 1,
+    "name": "FR",
+    "filter": "lowpass=4000"
+  },
+  {
+    "index": 2,
+    "name": "RL",
+    "filter": "lowpass=2000"
+  },
+  {
+    "index": 3,
+    "name": "RR",
+    "filter": "lowpass=2000"
+  }
+]
