@@ -1,13 +1,13 @@
 # dMDFPWM - Drake's Fork of MDFPWM
 
-**dMDFPWM** (Drake's MDFPWM) is a flexible container format, initially built as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
+**dMDFPWM** (Drake's MDFPWM) is a flexible container format, initially built as a fork of [Drucifer](https://github.com/drucifer-sc)'s [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
 
 
 
-# Introduction
-
-## What is this and how do I use it?
-- **dMDFPWM** is a container for audio tracks (layering multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this) that supports **surround** sound speaker configurations (hello, 7.1!). The only limit on channels/speakers is ffmpeg's (or ComputerCraft's) limits.
+# What *exactly* is this and how do I use it?
+- **dMDFPWM** is a container format for audio tracks in ComputerCraft.
+- It layers multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this.
+  - This means that it supports **surround** sound speaker configurations (hello, 7.1!). The only limit on channels/speakers is ffmpeg's (or ComputerCraft's) limits.
 
 ### If you want to skip all the boring technical stuff below, then all you need is: 
 
