@@ -46,11 +46,13 @@ dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM
 ├─────────────────────────────────────┤
 │ Audio Payload (Interleaved DFPWM)   │
 ├─────────────────────────────────────┤
-│ - Channel 1 DFPWM Data             │
-│ - Channel 2 DFPWM Data             │
-│ - Channel N DFPWM Data             │
-│ - Configurable chunk sizes         │
-│ - Default: 12000 bytes per chunk   │
+│ - Channel 1 DFPWM Data              │
+│   - Channel 2 DFPWM Data...         │
+│   - Channel N DFPWM Data...         │
+│      - ...etc, for each channel     │
+|                                     |
+│   Default: 12000 bytes per chunk    │
+│     ^^ configurable, not set        │
 └─────────────────────────────────────┘
 ```
 
