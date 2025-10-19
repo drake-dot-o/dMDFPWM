@@ -8,10 +8,10 @@ dMDFPWM is licensed under the [GNU Lesser General Public License v2.1](https://w
 
 ## Credits
 
-dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by [Drucifer](https://github.com/drucifer-sc) (and also [Ale32bit](https://github.com/Ale32bit)'s [Quartz](https://github.com/Ale32bit/Quartz) and [QuartzEncoder](https://github.com/Ale32bit/QuartzEncoder/) were a great help in understanding the audio), and has been extended with:
+dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by [Drucifer](https://github.com/drucifer-sc) (...and I must mention that also [Ale32bit](https://github.com/Ale32bit)'s [Quartz](https://github.com/Ale32bit/Quartz) and [QuartzEncoder](https://github.com/Ale32bit/QuartzEncoder/) were a great help in understanding the audio), and has been extended with:
 - Flexible multi-channel support
-- JSON-based configuration
-- Python encoder
+- JSON-based configuration for different surround layouts
+- Python encoder (requires ffmpeg)
 
 ## Key Differences from MDFPWM3
 
