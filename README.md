@@ -2,16 +2,10 @@
 
 **dMDFPWM** (Drake's MDFPWM) is a flexible container format, initially built as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
 
-## License & Credits
+### What is this and how do I use it?
+- <todo> here
 
-dMDFPWM is licensed under the [GNU Lesser General Public License v2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
 
-## Credits
-
-dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by [Drucifer](https://github.com/drucifer-sc) (...and I must mention that also [Ale32bit](https://github.com/Ale32bit)'s [Quartz](https://github.com/Ale32bit/Quartz) and [QuartzEncoder](https://github.com/Ale32bit/QuartzEncoder/) were a great help in understanding the audio), and has been extended with:
-- Flexible multi-channel support
-- JSON-based configuration for different surround layouts
-- Python encoder (requires ffmpeg)
 
 ## Key Differences from MDFPWM3
 
@@ -115,3 +109,14 @@ While dMDFPWM extends MDFPWM3, the formats are not directly compatible due to:
 - Different magic bytes and header structure
 - Variable channel configurations
 - Extended track information format
+
+## License
+
+dMDFPWM is licensed under the [GNU Lesser General Public License v2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
+
+## Credits
+
+dMDFPWM started out as a fork of [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3) by [Drucifer](https://github.com/drucifer-sc) (...and I must mention that also [Ale32bit](https://github.com/Ale32bit)'s [Quartz](https://github.com/Ale32bit/Quartz) and [QuartzEncoder](https://github.com/Ale32bit/QuartzEncoder/) were a great help in understanding the audio), and has been extended with:
+- Flexible multi-channel support
+- JSON-based configuration for different surround layouts
+- Python encoder (requires ffmpeg)
