@@ -1,5 +1,43 @@
--- Simple DMDFPWM Player for ComputerCraft
--- Based on libMDFPWM.lua
+-- DMDFPWM Player for ComputerCraft
+-- Configurable speaker mapping for surround sound channels
+
+-- ========================================
+-- SPEAKER CONFIGURATION
+-- ========================================
+-- Configure which speakers to use for each channel
+-- Comment out channels you don't have speakers for
+-- Available channels: FL, FR, FC, LFE, BL, BR, SL, SR
+
+local SPEAKER_CONFIG = {
+    -- Front Left
+    FL = "speaker_2",      -- Set to your speaker name (e.g., "speaker_0", "left_speaker")
+
+    -- Front Right
+    FR = "speaker_3",      -- Set to your speaker name
+
+    -- Front Center (optional)
+    FC = "speaker_10",      -- Set to your speaker name if you have center channel
+
+    -- LFE (Subwoofer, optional)
+    LFE = "speaker_6",     -- Set to your speaker name if you have LFE
+
+    -- Back Left (Rear Left, optional)
+    BL = "speaker_8",      -- Set to your speaker name if you have back left
+
+    -- Back Right (Rear Right, optional)
+    BR = "speaker_9",      -- Set to your speaker name if you have back right
+
+    -- Side Left (optional)
+    SL = "speaker_4",      -- Set to your speaker name if you have side left
+
+    -- Side Right (optional)
+    SR = "speaker_5",      -- Set to your speaker name if you have side right
+}
+
+-- Auto-detect speakers if not configured (backup)
+local AUTO_DETECT = true  -- Set to false to only use configured speakers
+
+-- ========================================
 
 local function parseDFPWM(filename)
     local file = fs.open(filename, "rb")
@@ -113,34 +151,66 @@ local function playDFPWM(player)
         print("  " .. spk.name)
     end
 
-    -- Assign speakers to channels with channel names
+    -- Assign speakers to channels using configuration
     local channelSpeakers = {}
     print("")
     print("Channel assignments:")
 
-    for i = 1, math.min(player.channelCount, #speakers) do
+    -- Create mapping of available speakers by name for quick lookup
+    local availableSpeakers = {}
+    for _, spk in ipairs(speakers) do
+        availableSpeakers[spk.name] = spk.peripheral
+    end
+
+    for i = 1, player.channelCount do
         local channelName = "Channel " .. i
-        -- Try to get channel name from configuration
+        local channelConfigName = "unknown"
+
+        -- Try to get channel name from file configuration
         if player.channels and player.channels[i] and player.channels[i].name then
-            channelName = channelName .. " (" .. player.channels[i].name .. ")"
+            channelConfigName = player.channels[i].name
+            channelName = channelName .. " (" .. channelConfigName .. ")"
         else
             channelName = channelName .. " (unknown)"
         end
-        channelSpeakers[i] = speakers[i].peripheral
-        print("  " .. channelName .. " -> " .. speakers[i].name)
+
+        -- Try to get speaker from configuration first
+        local assignedSpeaker = nil
+        if channelConfigName ~= "unknown" and SPEAKER_CONFIG[channelConfigName] then
+            if availableSpeakers[SPEAKER_CONFIG[channelConfigName]] then
+                assignedSpeaker = availableSpeakers[SPEAKER_CONFIG[channelConfigName]]
+                print("  " .. channelName .. " -> " .. SPEAKER_CONFIG[channelConfigName] .. " (configured)")
+            elseif SPEAKER_CONFIG[channelConfigName] and AUTO_DETECT then
+                print("  " .. channelName .. " -> " .. SPEAKER_CONFIG[channelConfigName] .. " (configured, but not found - using auto-detect)")
+                assignedSpeaker = speakers[i] and speakers[i].peripheral
+            else
+                print("  " .. channelName .. " -> " .. SPEAKER_CONFIG[channelConfigName] .. " (configured, but not found)")
+            end
+        else
+            -- Fall back to auto-detection if enabled
+            if AUTO_DETECT and speakers[i] then
+                assignedSpeaker = speakers[i].peripheral
+                print("  " .. channelName .. " -> " .. speakers[i].name .. " (auto-detected)")
+            else
+                print("  " .. channelName .. " -> No speaker assigned")
+            end
+        end
+
+        channelSpeakers[i] = assignedSpeaker
     end
 
-    -- If we have fewer speakers than channels, use the first speaker for remaining channels
-    if player.channelCount > #speakers then
-        for i = #speakers + 1, player.channelCount do
-            local channelName = "Channel " .. i
-            if player.channels and player.channels[i] and player.channels[i].name then
-                channelName = channelName .. " (" .. player.channels[i].name .. ")"
+    -- Show configuration status
+    print("")
+    print("Speaker Configuration Status:")
+    for channel, speakerName in pairs(SPEAKER_CONFIG) do
+        if speakerName then
+            if availableSpeakers[speakerName] then
+                print("  " .. channel .. " -> " .. speakerName)
             else
-                channelName = channelName .. " (unknown)"
+                print("  " .. channel .. " -> " .. speakerName .. " (not found)")
             end
-            channelSpeakers[i] = speakers[1].peripheral
-            print("  " .. channelName .. " -> " .. speakers[1].name .. " (shared)")
+        else
+            print("  " .. channel .. " -> Not configured")
         end
     end
 

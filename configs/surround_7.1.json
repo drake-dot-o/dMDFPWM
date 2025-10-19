@@ -1,39 +1,42 @@
 [
   {
-    "index": 0,
-    "name": "FL"
+
+    "name": "FL",
+    "filter": "highpass=60"
   },
   {
-    "index": 1,
-    "name": "FC"
+
+    "name": "FC",
+    "filter": "highpass=60"
   },
   {
-    "index": 2,
-    "name": "FR"
+
+    "name": "FR",
+    "filter": "highpass=60"
   },
   {
-    "index": 3,
+
     "name": "SL",
-    "filter": "lowpass=2000"
+    "filter": "highpass=55,lowpass=5000"
   },
   {
-    "index": 4,
+
     "name": "SR",
-    "filter": "lowpass=2000"
+    "filter": "highpass=55,lowpass=5000"
   },
   {
-    "index": 5,
+
     "name": "BL",
-    "filter": "lowpass=2000"
+    "filter": "highpass=40,lowpass=5000"
   },
   {
-    "index": 6,
+
     "name": "BR",
-    "filter": "lowpass=2000"
+    "filter": "highpass=40,lowpass=5000"
   },
   {
-    "index": 7,
+
     "name": "LFE",
-    "filter": "lowpass=120"
+    "filter": "highpass=40,lowpass=500"
   }
 ]

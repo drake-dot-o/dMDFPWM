@@ -1,24 +1,19 @@
 [
   {
-    "index": 0,
     "name": "FL"
   },
   {
-    "index": 1,
     "name": "FR"
   },
   {
-    "index": 2,
     "name": "BL",
     "filter": "lowpass=2000"
   },
   {
-    "index": 3,
     "name": "BR",
     "filter": "lowpass=2000"
   },
   {
-    "index": 4,
     "name": "LFE",
     "filter": "lowpass=120"
   }
