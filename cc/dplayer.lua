@@ -1,6 +1,6 @@
 
 
--- dplayer.lua: a dMDFPWM player for ComputerCraft
+-- dplayer.lua: a dMDFPWM player for ComputerCraft 
 -- Format spec and encoder available at https://github.com/drake-dot-o/dMDFPWM
 
 -- Supports local files and direct HTTP/HTTPS URLs, and streams audio without storing to disk
@@ -18,7 +18,8 @@ local SPEAKER_CONFIG = {
     BR = {"speaker_661"},-- Back Right (single speaker)
 }
 
-local AUTO_DETECT = false  -- Auto-detect speakers if not configured
+local AUTO_DETECT = true  -- Auto-detect speakers if not configured
+-- ^ I recommend setting this to false once speakers are configured
 
 -- ========================================
 -- UTILITY FUNCTIONS

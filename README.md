@@ -1,6 +1,7 @@
-# dMDFPWM - Drake's Fork of MDFPWM
+# dMDFPWM - Drake's version of MDFPWM
 
-**dMDFPWM**: (Drake's MDFPWM) is a flexible container format, initially built as a fork of [Drucifer](https://github.com/drucifer-sc)'s [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the original specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems.
+**dMDFPWM** is a flexible container format, initially based on [Drucifer](https://github.com/drucifer-sc)'s [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems. Initially it only supported L/R stereo.
+
 
 ## **!!! NOTICE !!!**: **Part of the code in this repository has been generated/modified by AI 🤖 tools.**
 
@@ -11,9 +12,9 @@
 
 # So... what *exactly* is this and how do I use it?
 - **dMDFPWM** is a container format for audio tracks in ComputerCraft. **dMDFPWM files are a container file of multiple `.dfpwm` files and metadata** 
-- Header data
-- they hold a layer of audio for each channel/speaker 
-- which means **you can play music in full surround with this as if it were an actual surround speaker setup in real life!**
+- **Header data** contains a bit of information to make the file easily readable by the player, as well as track/artist/album infos
+- They hold a layer of audio (`.dfpwm`) for **each** channel of audio which gets interleaved and can be played using multiple speakers ingame.
+- The result is basically **full surround with this as if it were an actual surround speaker setup in real life!**
 
 - It layers multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this, in an adjacent fashion to `MDFPWM`.
 
@@ -24,9 +25,12 @@
 
 - [dplayer.lua](https://github.com/drake-dot-o/dMDFPWM/blob/main/cc/dplayer.lua) to play `.dmdfpwm` files ingame. 
   - It is **IMPERATIVE** that you use all of the speakers  on a wired network attached to **ONLY ONE (1)** side of the computer. The player gives issues if you attach it to the same wired network on more than one side of a computer.
-  - `dplayer.lua` contains optional configuration for setting specific speakers for each channel.
+  - `dplayer.lua` contains optional configuration for setting specific speakers for each channel. 
+  - It will automatically detect speakers and assign them a channel if configuration is not set manually
+    - ...but just like a quality surround system in real life, it would be advisable to assign your channels to speakers manually, that are placed in a surround layout instead of randomly. 
 
-- A speaker for every channel that you intend to use. 
+- A speaker for every channel that you intend to use, connected to **ONE (1)** network, **on ONE (1)** side of the computer.
+
   - Common layouts such as 5.1, 7.1, and other surround sound layout mappings can be found outlined in [mappings.md](https://github.com/drake-dot-o/dMDFPWM/blob/main/mappings.md). 
     - ...however, you can configure them however you wish; feel free to experiment and play around with it and see what works best for you
   - See the [/configs/](https://github.com/drake-dot-o/dMDFPWM/tree/main/configs) folder for (barebones) examples of most common surround layouts.
