@@ -14,16 +14,14 @@
   {
     "index": 3,
     "name": "LFE",
-    "filter": "lowpass=120"
+    "filter": "lowpass=250"
   },
   {
     "index": 4,
-    "name": "BL",
-    "filter": "lowpass=2000"
+    "name": "BL"
   },
   {
     "index": 5,
-    "name": "BR",
-    "filter": "lowpass=2000"
+    "name": "BR"
   }
 ]

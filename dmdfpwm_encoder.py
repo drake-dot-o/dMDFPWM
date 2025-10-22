@@ -11,14 +11,11 @@ import json
 import subprocess
 import os
 import sys
-from pathlib import Path
 import struct
-import wave
-import numpy as np
-from typing import Dict, List, Tuple, Optional
 import glob
 import urllib.request
 import re
+from urllib.parse import urlparse, unquote
 
 
 class DMDFPWMEncoder:
@@ -30,9 +27,9 @@ class DMDFPWMEncoder:
         self.configs_dir = "configs"
         self.sample_rate = 48000
         self.bytes_per_second = 6000  # 1 second = 6000 bytes of DFPWM per channel
-        self.chunk_size = 12000  # 1 second for all channels (6000 bytes * 2 channels minimum)
+        self.chunk_size = 6000   # Default chunk size (1 second per channel)
 
-    def find_available_configs(self) -> List[Dict]:
+    def find_available_configs(self):
         """Find all available channel configurations in the configs directory"""
         configs = []
 
@@ -75,7 +72,7 @@ class DMDFPWMEncoder:
 
         return configs
 
-    def select_config_interactive(self, available_configs: List[Dict]) -> Optional[Dict]:
+    def select_config_interactive(self, available_configs):
         """Present user with interactive config selection"""
         if not available_configs:
             print("No valid configurations found!")
@@ -112,7 +109,7 @@ class DMDFPWMEncoder:
                 print("\nSelection cancelled.")
                 return None
 
-    def is_url(self, path: str) -> bool:
+    def is_url(self, path):
         """Check if a string is a valid URL"""
         url_pattern = re.compile(
             r'^https?://'  # http:// or https://
@@ -124,22 +121,56 @@ class DMDFPWMEncoder:
 
         return url_pattern.match(path) is not None
 
-    def download_from_url(self, url: str, local_filename: str) -> bool:
+    def extract_filename_from_url(self, url):
+        """Extract filename from URL, handling Discord CDN and other URLs"""
+        try:
+            # Remove query parameters to get the clean path
+            parsed = urlparse(url)
+            path = unquote(parsed.path)
+            
+            # Get the filename from the path
+            filename = os.path.basename(path)
+            
+            # If we got a filename with an extension, use it
+            if filename and '.' in filename:
+                # Remove extension for our temp file
+                name_without_ext = os.path.splitext(filename)[0]
+                extension = os.path.splitext(filename)[1]
+                return f"temp_downloaded_{name_without_ext}{extension}"
+            else:
+                return "temp_downloaded_audio"
+                
+        except Exception:
+            return "temp_downloaded_audio"
+
+    def download_from_url(self, url):
         """Download file from URL to local path"""
         try:
             print(f"Downloading from URL: {url}")
-            urllib.request.urlretrieve(url, local_filename)
+            
+            # Extract a sensible filename from the URL
+            local_filename = self.extract_filename_from_url(url)
+            
+            # Add User-Agent header to avoid blocks
+            req = urllib.request.Request(
+                url,
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            )
+            
+            with urllib.request.urlopen(req) as response, open(local_filename, 'wb') as out_file:
+                out_file.write(response.read())
+            
             print(f"Downloaded to: {local_filename}")
-            return True
+            return local_filename
         except Exception as e:
             print(f"Error downloading file: {e}")
-            return False
+            return None
 
-    def get_input_file_interactive(self) -> Optional[str]:
+    def get_input_file_interactive(self):
         """Get input file path from user (supports local files and HTTP URLs)"""
         while True:
             try:
-                input_path = input("Enter audio file path or HTTP URL: ").strip()
+                input_path = input("Enter audio file path or HTTP URL (Discord CDN supported): ").strip()
 
                 if not input_path:
                     print("Please enter a file path or URL.")
@@ -148,9 +179,9 @@ class DMDFPWMEncoder:
                 # Check if it's a URL
                 if self.is_url(input_path):
                     # Download from URL
-                    temp_filename = "temp_downloaded_audio"
-                    if self.download_from_url(input_path, temp_filename):
-                        return temp_filename
+                    downloaded_file = self.download_from_url(input_path)
+                    if downloaded_file:
+                        return downloaded_file
                     else:
                         print("Failed to download from URL. Please try again.")
                         continue
@@ -167,7 +198,7 @@ class DMDFPWMEncoder:
                 print("\nOperation cancelled.")
                 return None
 
-    def get_output_file_interactive(self) -> Optional[str]:
+    def get_output_file_interactive(self):
         """Get output file name from user and ensure converted/ directory exists"""
         # Create converted directory if it doesn't exist
         converted_dir = "converted"
@@ -194,7 +225,7 @@ class DMDFPWMEncoder:
                 print("\nOperation cancelled.")
                 return None
 
-    def get_chunk_size_interactive(self) -> int:
+    def get_chunk_size_interactive(self):
         """Get chunk size from user"""
         default_size = 6000
 
@@ -217,7 +248,7 @@ class DMDFPWMEncoder:
                 print(f"\nUsing default chunk size: {default_size}")
                 return default_size
 
-    def get_track_info_interactive(self) -> Tuple[str, str, str]:
+    def get_track_info_interactive(self):
         """Get artist, title, and album information from user"""
         print("Enter track information (optional):")
 
@@ -232,7 +263,7 @@ class DMDFPWMEncoder:
             print("\nUsing no track information.")
             return "", "", ""
 
-    def parse_channel_config(self, config: List[Dict]) -> List[Dict]:
+    def parse_channel_config(self, config):
         """Parse and validate channel configuration"""
         if not isinstance(config, list):
             raise ValueError("Channel config must be a list")
@@ -249,7 +280,7 @@ class DMDFPWMEncoder:
 
         return config
 
-    def build_header(self, channel_count: int, chunk_size: int, payload_length: int) -> bytes:
+    def build_header(self, channel_count, chunk_size, payload_length):
         """Build DMDFPWM file header"""
         header = bytearray()
         header.extend(self.magic)  # Magic: "DMDFPWM"
@@ -259,7 +290,7 @@ class DMDFPWMEncoder:
         header.extend(struct.pack('<H', chunk_size))  # Chunk size per channel
         return bytes(header)
 
-    def encode_audio(self, input_file: str, channel_spec: Dict) -> bytes:
+    def encode_audio(self, input_file, channel_spec):
         """Encode audio for a specific channel using FFmpeg's built-in DFPWM encoder"""
         try:
             channel_idx = channel_spec['index']
@@ -270,20 +301,31 @@ class DMDFPWMEncoder:
             # Map channel index to appropriate FFmpeg channel based on target channel name
             target_channel = channel_spec['name']
 
+            # TODO: something is fucked with the center channels, dont use for now
+            # TODO: need to implement the thing with, for example, mixing FL+FR to 1 channel, and then mixing that to FC (0.5*FL+0.5*FR)
+            # ^^^ maybe this makes the other channels (FL/FR/BL/BR/SL/SR themselves) sound better too?
+            # Dru mentioned doing this with mdfpwm so it's certainly worth trying
+
             if target_channel == "FL":
                 pan_filter = "1c|c0=FL"  # Front left
             elif target_channel == "FR":
                 pan_filter = "1c|c0=FR"  # Front right
             elif target_channel == "FC":
-                pan_filter = "1c|c0=FC"  # Front center (if available in source)
+                # Mix FL+FR for Front Center
+                pan_filter = "1c|c0=0.5*FL+0.5*FR"
             elif target_channel == "LFE":
-                pan_filter = "1c|c0=LFE"  # LFE (if available in source)
+                pan_filter = "1c|c0=LFE"
             elif target_channel == "BL":
-                pan_filter = "1c|c0=BL"  # Back left (if available in source)
+                pan_filter = "1c|c0=BL"  # Back left
             elif target_channel == "BR":
-                pan_filter = "1c|c0=BR"  # Back right (if available in source)
+                pan_filter = "1c|c0=BR"  # Back right
             elif target_channel == "BC":
-                pan_filter = "1c|c0=BC"  # Back center (if available in source)
+                # Mix BL+BR for Back Center
+                pan_filter = "1c|c0=0.5*BL+0.5*BR"
+            elif target_channel == "SL":
+                pan_filter = "1c|c0=SL"  # Side left
+            elif target_channel == "SR":
+                pan_filter = "1c|c0=SR"  # Side right
             else:
                 # Fallback: try to use the target channel name directly
                 # If that fails, simulate from stereo channels
@@ -336,85 +378,7 @@ class DMDFPWMEncoder:
             print(f"Error encoding channel {channel_spec.get('name', 'unknown')}: {e}")
             return b''
 
-    def _read_wav_pcm(self, wav_file: str) -> bytes:
-        """Read PCM data from WAV file"""
-        with wave.open(wav_file, 'rb') as wav:
-            # Skip WAV header (44 bytes) and read raw PCM data
-            wav.readframes(44)  # Skip WAV header
-            return wav.readframes(wav.getnframes())
-
-    def _pcm_to_dfpwm(self, pcm_data: bytes) -> bytes:
-        """Convert 16-bit PCM to DFPWM"""
-        if not pcm_data:
-            return b''
-
-        # Convert bytes to 16-bit samples
-        samples = []
-        for i in range(0, len(pcm_data), 2):
-            if i + 1 < len(pcm_data):
-                # Little-endian 16-bit sample
-                sample = int.from_bytes(pcm_data[i:i+2], byteorder='little', signed=True)
-                samples.append(sample)
-
-        # DFPWM encoding parameters
-        strength = 127  # Filter strength
-        dfpwm_bytes = bytearray()
-
-        # Initial state
-        current_sample = 0
-        running_average = 0
-
-        for sample in samples:
-            # Scale sample to DFPWM range (-32767 to 32767)
-            scaled_sample = int((sample * 32767) / 32768)
-
-            # Calculate target (sample - running average)
-            target = scaled_sample - running_average
-
-            # Determine charge to add based on target
-            if target > current_sample:
-                charge = strength
-                current_sample += strength
-                dfpwm_bytes.append(1)  # High pulse
-            else:
-                charge = -strength
-                current_sample -= strength
-                dfpwm_bytes.append(0)  # Low pulse
-
-            # Update running average
-            running_average += charge // 16
-
-            # Clamp running average
-            running_average = max(-32767, min(32767, running_average))
-
-        return bytes(dfpwm_bytes)
-
-    def interleave_audio(self, channel_data: List[bytes], chunk_size: int) -> bytes:
-        """Interleave channel audio data"""
-        if not channel_data:
-            return b''
-
-        # Calculate number of chunks needed
-        max_length = max(len(data) for data in channel_data)
-        num_chunks = (max_length + chunk_size - 1) // chunk_size
-
-        interleaved = bytearray()
-
-        for chunk_idx in range(num_chunks):
-            for channel_idx, data in enumerate(channel_data):
-                start = chunk_idx * chunk_size
-                end = min(start + chunk_size, len(data))
-                chunk = data[start:end]
-
-                # Pad with 0x55 if chunk is incomplete
-                if len(chunk) < chunk_size:
-                    chunk = chunk + b'\x55' * (chunk_size - len(chunk))
-
-                interleaved.extend(chunk)
-
-        return bytes(interleaved)
-
-    def interleave_audio_chunks(self, channel_data: List[bytes], chunk_size: int) -> bytes:
+    def interleave_audio_chunks(self, channel_data, chunk_size):
         """Interleave audio data using standard chunking"""
         if not channel_data:
             return b''
@@ -439,8 +403,7 @@ class DMDFPWMEncoder:
 
         return bytes(interleaved)
 
-    def write_dmdfpwm(self, output_file: str, header: bytes,
-                     artist: str, title: str, album: str, audio_data: bytes):
+    def write_dmdfpwm(self, output_file, header, artist, title, album, channels, audio_data):
         """Write complete DMDFPWM file following MDFPWM format specification"""
         with open(output_file, 'wb') as f:
             f.write(header)
@@ -450,9 +413,24 @@ class DMDFPWMEncoder:
             title_bytes = title.encode('utf-8') + b'\x00'
             album_bytes = album.encode('utf-8') + b'\x00'
 
+            # Calculate metadata length (artist + title + album)
+            metadata_len = len(artist_bytes) + len(title_bytes) + len(album_bytes)
+
+            # Write metadata length (1 byte) first
+            f.write(bytes([metadata_len]))
+
+            # Then write the actual metadata
             f.write(artist_bytes)
             f.write(title_bytes)
             f.write(album_bytes)
+
+            # Write channel configuration as JSON
+            channel_config_json = json.dumps(channels).encode('utf-8')
+            channel_config_len = len(channel_config_json)
+
+            # Write channel config length (2 bytes, little-endian) and config data
+            f.write(struct.pack('<H', channel_config_len))
+            f.write(channel_config_json)
 
             # Write audio payload
             f.write(audio_data)
@@ -491,7 +469,7 @@ def run_interactive():
     if not output_file:
         print("No output file specified. Exiting.")
         # Clean up downloaded file if it exists
-        if input_file == "temp_downloaded_audio" and os.path.exists(input_file):
+        if input_file and input_file.startswith("temp_downloaded_") and os.path.exists(input_file):
             os.remove(input_file)
         return
 
@@ -544,17 +522,19 @@ def run_interactive():
     interleaved_data = encoder.interleave_audio_chunks(channel_data, chunk_size)
     print(f"Interleaved {len(interleaved_data)} bytes of audio data")
 
-    # Calculate payload length (artist + title + album + audio)
+    # Calculate payload length (artist + title + album + channel_config_len_bytes + channel_config + audio)
     artist_bytes = artist.encode('utf-8') + b'\x00'
     title_bytes = title.encode('utf-8') + b'\x00'
     album_bytes = album.encode('utf-8') + b'\x00'
-    payload_length = len(artist_bytes) + len(title_bytes) + len(album_bytes) + len(interleaved_data)
+    channel_config_json = json.dumps(channels).encode('utf-8')
+    channel_config_len = len(channel_config_json)
+    payload_length = len(artist_bytes) + len(title_bytes) + len(album_bytes) + 1 + 2 + channel_config_len + len(interleaved_data)
 
     # Build header with correct payload length
     header = encoder.build_header(len(channels), chunk_size, payload_length)
 
     # Write final DMDFPWM file
-    encoder.write_dmdfpwm(output_file, header, artist, title, album, interleaved_data)
+    encoder.write_dmdfpwm(output_file, header, artist, title, album, channels, interleaved_data)
 
     print("\nStep 6: Complete!")
     print("-" * 16)
@@ -568,7 +548,7 @@ def run_interactive():
 def run_command_line():
     """Run in command line mode with arguments"""
     parser = argparse.ArgumentParser(description='Convert audio to DMDFPWM format')
-    parser.add_argument('--input', '-i', required=True, help='Input audio file')
+    parser.add_argument('--input', '-i', required=True, help='Input audio file or URL')
     parser.add_argument('--output', '-o', required=True, help='Output DMDFPWM file')
     parser.add_argument('--config', '-c', help='Channel configuration JSON file (if not specified, will show available configs)')
     parser.add_argument('--chunk-size', type=int, default=6000, help='Chunk size per channel (default: 6000)')
@@ -584,6 +564,19 @@ def run_command_line():
     # Initialize encoder
     encoder = DMDFPWMEncoder()
 
+    # Handle input file (local or URL)
+    input_file = args.input
+    downloaded_file = None
+    
+    if encoder.is_url(input_file):
+        print(f"Detected URL input, downloading...")
+        downloaded_file = encoder.download_from_url(input_file)
+        if not downloaded_file:
+            print(f"Error: Failed to download from URL: {input_file}")
+            cleanup_temp_files()
+            sys.exit(1)
+        input_file = downloaded_file
+
     # Determine channel configuration
     channel_config = None
 
@@ -591,7 +584,7 @@ def run_command_line():
         # Use specified config file
         if not os.path.exists(args.config):
             print(f"Error: Config file '{args.config}' not found")
-            cleanup_temp_files()
+            cleanup_temp_files(downloaded_file)
             sys.exit(1)
 
         print(f"Using specified config: {args.config}")
@@ -604,14 +597,14 @@ def run_command_line():
 
         if not available_configs:
             print("No valid configurations found in configs/ directory!")
-            cleanup_temp_files()
+            cleanup_temp_files(downloaded_file)
             sys.exit(1)
 
         selected_config = encoder.select_config_interactive(available_configs)
 
         if not selected_config:
             print("No configuration selected. Exiting.")
-            cleanup_temp_files()
+            cleanup_temp_files(downloaded_file)
             sys.exit(1)
 
         channel_config = selected_config['data']
@@ -621,61 +614,71 @@ def run_command_line():
     channels = encoder.parse_channel_config(channel_config)
 
     print(f"Encoding {len(channels)} channels with chunk size {args.chunk_size}")
-    print(f"Input: {args.input}")
+    print(f"Input: {input_file}")
     print(f"Output: {args.output}")
 
     # Check if input file exists
-    if not os.path.exists(args.input):
-        print(f"Error: Input file '{args.input}' not found")
-        cleanup_temp_files()
+    if not os.path.exists(input_file):
+        print(f"Error: Input file '{input_file}' not found")
+        cleanup_temp_files(downloaded_file)
         sys.exit(1)
 
     # Encode each channel
     channel_data = []
     for channel in channels:
         print(f"Encoding channel {channel['index']}: {channel['name']}")
-        encoded_data = encoder.encode_audio(args.input, channel)
+        encoded_data = encoder.encode_audio(input_file, channel)
         channel_data.append(encoded_data)
         print(f"  Encoded {len(encoded_data)} bytes")
 
     # Interleave audio data
-    interleaved_data = encoder.interleave_audio(channel_data, args.chunk_size)
+    interleaved_data = encoder.interleave_audio_chunks(channel_data, args.chunk_size)
     print(f"Interleaved {len(interleaved_data)} bytes of audio data")
 
-    # Calculate payload length (artist + title + album + audio)
+    # Calculate payload length (artist + title + album + channel_config_len_bytes + channel_config + audio)
     # For command line mode, use empty strings for track info
     artist_bytes = b'' + b'\x00'
     title_bytes = b'' + b'\x00'
     album_bytes = b'' + b'\x00'
-    payload_length = len(artist_bytes) + len(title_bytes) + len(album_bytes) + len(interleaved_data)
+    channel_config_json = json.dumps(channels).encode('utf-8')
+    channel_config_len = len(channel_config_json)
+    payload_length = len(artist_bytes) + len(title_bytes) + len(album_bytes) + 1 + 2 + channel_config_len + len(interleaved_data)
 
     # Build header with correct payload length
     header = encoder.build_header(len(channels), args.chunk_size, payload_length)
 
     # Write final DMDFPWM file
-    encoder.write_dmdfpwm(args.output, header, '', '', '', interleaved_data)
+    encoder.write_dmdfpwm(args.output, header, '', '', '', channels, interleaved_data)
 
     print(f"Created DMDFPWM file: {args.output}")
     print(f"Total file size: {os.path.getsize(args.output)} bytes")
+    
+    # Clean up downloaded file if it was used
+    cleanup_temp_files(downloaded_file)
 
 
-def cleanup_temp_files(input_file: str = None):
+def cleanup_temp_files(input_file = None):
     """Clean up temporary files"""
     files_to_cleanup = []
 
-    # Clean up downloaded audio file
-    if input_file == "temp_downloaded_audio" and os.path.exists(input_file):
+    # Clean up downloaded audio file (matches any temp_downloaded_* file)
+    if input_file and input_file.startswith("temp_downloaded_") and os.path.exists(input_file):
         files_to_cleanup.append(input_file)
 
     # Clean up any temporary channel files that might be left behind
     temp_channel_files = glob.glob("temp_channel_*.dfpwm")
     files_to_cleanup.extend(temp_channel_files)
+    
+    # Clean up any other temp_downloaded files that might be lingering
+    temp_downloaded_files = glob.glob("temp_downloaded_*")
+    files_to_cleanup.extend(temp_downloaded_files)
 
     # Remove all identified temp files
     for temp_file in files_to_cleanup:
         try:
-            os.remove(temp_file)
-            print(f"Cleaned up temporary file: {temp_file}")
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+                print(f"Cleaned up temporary file: {temp_file}")
         except Exception as e:
             print(f"Warning: Could not remove temp file {temp_file}: {e}")
 

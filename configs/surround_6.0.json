@@ -9,14 +9,12 @@
     "name": "FR"
   },
   {
-    "name": "BL",
-    "filter": "lowpass=2000"
+    "name": "BL"
   },
   {
     "name": "BC"
   },
   {
-    "name": "BR",
-    "filter": "lowpass=2000"
+    "name": "BR"
   }
 ]

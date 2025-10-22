@@ -10,20 +10,25 @@
 
 
 # So... what *exactly* is this and how do I use it?
-- **dMDFPWM** is a container format for audio tracks in ComputerCraft. **dMDFPWM files are not strictly mono or stereo** like normal dfpwm/mdfpwm files, and as an extent, - they hold a layer of audio for each channel/speaker - which means **you can play music in full surround with this as if it were an actual surround speaker setup in real life!**
+- **dMDFPWM** is a container format for audio tracks in ComputerCraft. **dMDFPWM files are a container file of multiple `.dfpwm` files and metadata** 
+- Header data
+- they hold a layer of audio for each channel/speaker 
+- which means **you can play music in full surround with this as if it were an actual surround speaker setup in real life!**
 
-- It layers multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this. In an adjacent fashion to `MDFPWM`.
+- It layers multiple [.dfpwm](https://tweaked.cc/library/cc.audio.dfpwm.html)'s on top of each other [one per speaker channel] at its core to achieve this, in an adjacent fashion to `MDFPWM`.
 
 ### If you want to skip all the boring technical stuff below, then all you need is: 
 
 - [dmdfpwm_encoder.py](https://github.com/drake-dot-o/dMDFPWM/blob/main/dmdfpwm_encoder.py) to convert the files to dMDFPWM
   - The encoder **requires** [ffmpeg](https://www.ffmpeg.org).
 
-- [player.lua](https://github.com/drake-dot-o/dMDFPWM/blob/main/cc/player.lua) to play `.dmdfpwm` files ingame.
-  - `player.lua` contains optional configuration for setting specific speakers for each channel.
+- [dplayer.lua](https://github.com/drake-dot-o/dMDFPWM/blob/main/cc/dplayer.lua) to play `.dmdfpwm` files ingame. 
+  - It is **IMPERATIVE** that you use all of the speakers  on a wired network attached to **ONLY ONE (1)** side of the computer. The player gives issues if you attach it to the same wired network on more than one side of a computer.
+  - `dplayer.lua` contains optional configuration for setting specific speakers for each channel.
 
 - A speaker for every channel that you intend to use. 
-  - Common layouts such as 5.1, 7.1, and other surround sound layout mappings can be found outlined in [mappings.md](https://github.com/drake-dot-o/dMDFPWM/blob/main/mappings.md). However, you can configure them however you wish. 
+  - Common layouts such as 5.1, 7.1, and other surround sound layout mappings can be found outlined in [mappings.md](https://github.com/drake-dot-o/dMDFPWM/blob/main/mappings.md). 
+    - ...however, you can configure them however you wish; feel free to experiment and play around with it and see what works best for you
   - See the [/configs/](https://github.com/drake-dot-o/dMDFPWM/tree/main/configs) folder for (barebones) examples of most common surround layouts.
 
 
@@ -65,12 +70,15 @@
 │   - Channel N DFPWM Data...         │
 │      - ...etc, for each channel     │
 |                                     |
-│   Default: 12000 bytes per chunk    │
+│   Default: 6000 bytes per chunk     │
+|    per channel/second@48kHz         |
+|                                     |
 │     ^^ configurable, not set        │
 └─────────────────────────────────────┘
 ```
 
-**Default Chunk Size**: 12000 bytes (1 second at 48kHz per channel)
+**Default Chunk Size**: 6000 bytes (1 second at 48kHz per channel)
+
 **Example Configurations**:
 - **Stereo (2.0)**: 2 channels × 6000 bytes = 12000 bytes per chunk
 - **Surround 5.1**: 6 channels × 2000 bytes = 12000 bytes per chunk

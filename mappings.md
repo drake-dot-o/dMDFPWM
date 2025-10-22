@@ -1,4 +1,6 @@
 # FFmpeg Channel Layout Mappings
+## Notice: center channels (FC, BC) still need to be mixed and currently don't work.
+
 
 ## Standard Channel Abbreviations
 
@@ -25,6 +27,7 @@
 | **Surround (3.1)** | <pre>FL + FC + FR<br>    LFE</pre> | 4 |
 | **Quad (4.0)** | <pre>FL + FR<br>BL + BR</pre> | 4 |
 | **Quad + LFE (4.1)** | <pre>FL + FR<br>BL + BR<br>  LFE</pre> | 5 |
+| **Quad + Side + LFE** | <pre>FL + FR<br>BL + BR<br>    LFE<br>    SL + SR</pre> | 5 |
 | **5.0 Surround** | <pre>FL + FC + FR<br>   SL + SR</pre> | 5 |
 | **5.1 Surround** | <pre>FL + FC + FR<br>  BL + BR<br>    LFE</pre> | 6 |
 | **6.0 Surround** | <pre>FL + FC + FR<br>BL + BC + BR</pre> | 6 |
