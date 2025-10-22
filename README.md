@@ -44,7 +44,7 @@
 |---------|---------|---------|
 | **Format Magic** | `MDFPWM\003` | `DMDFPWM\x01` |
 | **Channel Support** | Stereo (L/R) | Arbitrary channels (2.0, 4.0, 5.1, etc+) |
-| **Chunk Size** | Fixed 12000 bytes | Configurable per-channel (defaults 12000 bytes) |
+| **Chunk Size** | Fixed 12000 bytes | Configurable per-channel (defaults 6000 bytes/chunk/channel) |
 | **Bitrate** | Fixed 48kbps per channel | Variable bitrates/channel (defaults 48kbps) |
 | **Metadata** | Artist + Title + Album | Artist + Title + Album |
 | **Configuration** | [Fixed] Stereo (L/R) | Set with the config of the encoding |
@@ -82,11 +82,6 @@
 ```
 
 **Default Chunk Size**: 6000 bytes (1 second at 48kHz per channel)
-
-**Example Configurations**:
-- **Stereo (2.0)**: 2 channels × 6000 bytes = 12000 bytes per chunk
-- **Surround 5.1**: 6 channels × 2000 bytes = 12000 bytes per chunk
-- **Surround 7.1**: 8 channels × 1500 bytes = 12000 bytes per chunk
 
 ### Track Information Format
 
