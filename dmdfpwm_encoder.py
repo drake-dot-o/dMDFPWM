@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-DMDFPWM Audio Encoder for Python
+A python encoder for dMDFPWM, a multi-channel audio container for ComputerCraft
+Spec can be found at https://github.com/drake-dot-o/dMDFPWM
 
 Converts audio files to DMDFPWM format based on the specification.
 Supports multi-channel audio with flexible configurations.
@@ -170,7 +171,7 @@ class DMDFPWMEncoder:
         """Get input file path from user (supports local files and HTTP URLs)"""
         while True:
             try:
-                input_path = input("Enter audio file path or HTTP URL (Discord CDN supported): ").strip()
+                input_path = input("Enter audio file path or HTTP URL (direct links to audio attachme): ").strip()
 
                 if not input_path:
                     print("Please enter a file path or URL.")

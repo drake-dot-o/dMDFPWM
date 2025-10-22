@@ -1,6 +1,9 @@
--- DMDFPWM Streaming Player for ComputerCraft
--- Supports local files and direct HTTP/HTTPS URLs
--- Streams audio without storing to disk
+
+
+-- dplayer.lua: a dMDFPWM player for ComputerCraft
+-- Format spec and encoder available at https://github.com/drake-dot-o/dMDFPWM
+
+-- Supports local files and direct HTTP/HTTPS URLs, and streams audio without storing to disk
 
 -- ========================================
 -- SPEAKER CONFIGURATION
