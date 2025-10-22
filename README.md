@@ -3,13 +3,6 @@
 **dMDFPWM** is a flexible container format, initially based on [Drucifer](https://github.com/drucifer-sc)'s [MDFPWM3](https://github.com/drucifer-sc/MDFPWM3), that extends the specification to support arbitrary multi-channel audio configurations for ComputerCraft/CC:Tweaked audio systems. Initially it only supported L/R stereo.
 
 
-## **!!! NOTICE !!!**: **Part of the code in this repository has been generated/modified by AI 🤖 tools.**
-
- While I have tried to review and validate the AI-generated content to the best of my own ability, this is a project that I undertook with a ***VERY*** limited understanding of audio from a software perspective. I am simply leaving this notice at the top for transparency. 
- So, please don't flame me if it's kind of ugly. Any guidance or pointing out what is being done wrong is infinitely more helpful.
- :)
-
-
 # So... what *exactly* is this and how do I use it?
 - **dMDFPWM** is a container format for audio tracks in ComputerCraft. **dMDFPWM files are a container file of multiple `.dfpwm` files and metadata** 
 - **Header data** contains a bit of information to make the file easily readable by the player, as well as track/artist/album infos
@@ -153,6 +146,14 @@ This software is distributed in the hope that it will be useful, but WITHOUT ANY
 - Include copyright notices and warranty disclaimers
 - Make source code available when distributing binaries
 - Clearly mark any modifications you make
+
+
+
+## **!!! NOTICE !!!**: **Part of the code in this repository has been generated/modified by AI 🤖 tools.**
+
+ While I have tried to review and validate the AI-generated content to the best of my own ability, this is a project that I undertook with a ***VERY*** limited understanding of audio from a software perspective. I am simply leaving this notice at the top for transparency. 
+ So, please don't flame me if it's kind of ugly. Any guidance or pointing out what is being done wrong is infinitely more helpful.
+ :)
 
 ## Credits
 
