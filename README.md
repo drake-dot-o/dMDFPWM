@@ -4,7 +4,7 @@
 
 
 # So... what *exactly* is this and how do I use it?
-- **dMDFPWM** is a container format for audio tracks in ComputerCraft. **`.dmdfpwm` files are a container file of multiple `.dfpwm` files and an additional layer of track metadata.** 
+- **dMDFPWM** is a container format for audio tracks in ComputerCraft. **`.dmdfpwm` files are a container file of multiple `.dfpwm` files and an additional layer of track metadata including artist/title/album as well as the channel configuration.** 
 - **Header data** contains a bit of information to make the file easily readable by the player, as well as track/artist/album infos
 - They hold a layer of audio (`.dfpwm`) for **each** channel of audio which gets interleaved and can be played using multiple speakers ingame.
 - The result is basically **full surround with this as if it were an actual surround speaker setup in real life!**
