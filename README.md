@@ -54,11 +54,15 @@
 │ - Channel Count (2 bytes, LE)       │
 │ - Chunk Size (2 bytes, LE)          │
 ├─────────────────────────────────────┤
-│ Track Information (Variable)        │
+│ Track Metadata (Variable)           │
 ├─────────────────────────────────────┤
-│ - Artist (null-terminated UTF-8)    │
-│ - Title (null-terminated UTF-8)     │
-│ - Album (null-terminated UTF-8)     │
+│ - Metadata Length (1 byte)          │
+│ - JSON Metadata (UTF-8)             │
+├─────────────────────────────────────┤
+│ Channel Configuration (Variable)    │
+├─────────────────────────────────────┤
+| - Config Length (2 bytes, LE)       |
+│ - JSON Channel Config (UTF-8)       │
 ├─────────────────────────────────────┤
 │ Audio Payload (Interleaved DFPWM)   │
 ├─────────────────────────────────────┤
@@ -68,7 +72,7 @@
 │      - ...etc, for each channel     │
 |                                     |
 │   Default: 6000 bytes per chunk     │
-|    per channel/second@48kHz         |
+|    per channel/second@48kHz         │
 |                                     |
 │     ^^ configurable, not set        │
 └─────────────────────────────────────┘
@@ -76,12 +80,26 @@
 
 **Default Chunk Size**: 6000 bytes (1 second at 48kHz per channel)
 
-### Track Information Format
+### Track Metadata Format
 
-The track information consists of three null-terminated `UTF-8` strings:
-- **Artist**: Performer or group name
-- **Title**: Song or track title
-- **Album**: Album or release name
+Track metadata consists of:
+1. **Metadata Length** (1 byte): Length of the JSON string
+2. **JSON Metadata** (UTF-8): A JSON object containing artist, title, and album fields
+
+Example JSON:
+```json
+{
+  "artist": "Artist Name",
+  "title": "Song Title",
+  "album": "Album Name"
+}
+```
+
+### Channel Configuration Format
+
+Channel configuration consists of:
+1. **Config Length** (2 bytes, LE): Length of JSON configuration string
+2. **JSON Config** (UTF-8): Array of channel objects with optional filters
 
 ### JSON Channel Configuration
 

@@ -1,5 +1,3 @@
-
-
 -- dplayer.lua: a dMDFPWM player for ComputerCraft 
 -- Format spec and encoder available at https://github.com/drake-dot-o/dMDFPWM
 
@@ -9,16 +7,16 @@
 -- SPEAKER CONFIGURATION
 -- ========================================
 local SPEAKER_CONFIG = {
-    FL = {"speaker_667"},   -- Front Left (single speaker)
-    FR = {"speaker_668"},   -- Front Right (single speaker)
-    SL = {"speaker_663"},   -- Side Left (single speaker)
-    SR = {"speaker_664"},   -- Side Right (single speaker)
-    LFE = {"speaker_669", "speaker_670"},  -- Subwoofer (can be multiple speakers)
+    FL = {"speaker_665"},   -- Front Left (single speaker)
+    FR = {"speaker_666"},   -- Front Right (single speaker)
+    SL = {"speaker_684"},   -- Side Left (single speaker)
+    SR = {"speaker_685"},   -- Side Right (single speaker)
+    LFE = {"speaker_667", "speaker_668"},  -- Subwoofer (can be multiple speakers)
     BL = {"speaker_662"},   -- Back Left (single speaker)
     BR = {"speaker_661"},-- Back Right (single speaker)
 }
 
-local AUTO_DETECT = true  -- Auto-detect speakers if not configured
+local AUTO_DETECT = false-- Auto-detect speakers if not configured
 -- ^ I recommend setting this to false once speakers are configured
 
 -- ========================================
@@ -45,13 +43,25 @@ local function downloadChunk(url, startByte, endByte)
     return data
 end
 
+local function clearAllSpeakers()
+    local peripherals = peripheral.getNames()
+    for _, name in ipairs(peripherals) do
+        if string.find(name, "speaker") then
+            local speaker = peripheral.wrap(name)
+            if speaker and speaker.stop then
+                speaker.stop()  -- Clears the speaker's buffer, weird shit happens sometimes without this, no idea why, one or two channels will play the last song played
+            end
+        end
+    end
+end
+
 -- ========================================
 -- PARSER FOR STREAMING
 -- ========================================
 
 local function parseHeaderFromURL(url)
-    -- Download just the header (first 512 bytes should be enough)
-    local headerData = downloadChunk(url, 0, 511)
+    -- Download just the header (first 2048 bytes should be enough for metadata + config)
+    local headerData = downloadChunk(url, 0, 2047)
     if not headerData then
         return false, "Failed to download header"
     end
@@ -70,44 +80,30 @@ local function parseHeaderFromURL(url)
     -- Read header data
     local payloadLen, channelCount, chunkSize = string.unpack("<IHH", headerData:sub(9, 16))
     
-    -- Read metadata length and metadata
+    -- Read metadata length and JSON metadata
     local metadataLen = string.byte(headerData:sub(17, 17))
-    local metadata = headerData:sub(18, 17 + metadataLen)
-    local meta = textutils.unserializeJSON(metadata) or {}
+    local metadataJson = headerData:sub(18, 17 + metadataLen)
+    local meta = textutils.unserializeJSON(metadataJson) or {artist = "", title = "", album = ""}
 
     -- Read channel config length and config (2 bytes, little-endian)
-    local configLen = string.unpack("<H", headerData:sub(18 + metadataLen, 19 + metadataLen))
-    local config = headerData:sub(20 + metadataLen, 19 + metadataLen + configLen)
+    -- Config length starts right after metadata ends
+    local configLenStart = 18 + metadataLen
+    local configLen = string.unpack("<H", headerData:sub(configLenStart, configLenStart + 1))
+    local configStart = configLenStart + 2
+    local config = headerData:sub(configStart, configStart + configLen - 1)
     local channels = textutils.unserializeJSON(config) or {}
-
-    -- Debug: Write to log file instead of printing
-    local logFile = fs.open("debug.log", "w")
-    logFile.writeLine("=== DMDFPWM Header Parsing Debug ===")
-    logFile.writeLine("Header offset calculation:")
-    logFile.writeLine("  Base offset (16 + 1): 17")
-    logFile.writeLine("  Metadata length: " .. metadataLen)
-    logFile.writeLine("  Config length byte at position: " .. (18 + metadataLen))
-    logFile.writeLine("  Config data from position: " .. (19 + metadataLen) .. " to " .. (18 + metadataLen + configLen))
-    logFile.writeLine("Raw config data (first 500 chars):")
-    logFile.writeLine(config:sub(1, 500))
-    logFile.writeLine("Raw config data (remaining chars):")
-    if #config > 500 then
-        logFile.writeLine(config:sub(501))
+    
+    -- Debug output
+    print("Metadata length: " .. metadataLen)
+    print("Config length: " .. configLen)
+    print("Config data length: " .. #config)
+    if #config > 0 then
+        print("Config preview: " .. config:sub(1, math.min(100, #config)))
     end
-    logFile.writeLine("Config length: " .. configLen)
-    logFile.writeLine("Attempting JSON parse...")
-    logFile.writeLine("Parsed channels type: " .. type(channels))
-    logFile.writeLine("Parsed channels length: " .. (channels and #channels or "nil"))
-    if channels then
-        logFile.writeLine("First channel: " .. textutils.serialize(channels[1] or "none"))
-    end
-    logFile.close()
-
-    print("Debug info written to debug.log")
     
     -- Calculate offsets (header + metadata_len_byte + metadata + config_len_bytes + config)
     local dataOffset = 16 + 1 + metadataLen + 2 + configLen
-    local totalDataLen = payloadLen - metadataLen - configLen - 2
+    local totalDataLen = payloadLen - 1 - metadataLen - 2 - configLen
     local bytesPerSecond = chunkSize * channelCount
     local totalSamples = math.floor(totalDataLen / bytesPerSecond)
     
@@ -146,44 +142,27 @@ local function parseHeaderFromFile(filename)
     -- Read header data
     local payloadLen, channelCount, chunkSize = string.unpack("<IHH", file.read(8))
     
-    -- Read metadata
+    -- Read metadata length and JSON metadata
     local metadataLen = string.byte(file.read(1))
-    local metadata = file.read(metadataLen)
-    local meta = textutils.unserializeJSON(metadata) or {}
+    local metadataJson = file.read(metadataLen)
+    local meta = textutils.unserializeJSON(metadataJson) or {artist = "", title = "", album = ""}
     
     -- Read channel config length (2 bytes, little-endian)
     local configLen = string.unpack("<H", file.read(2))
     local config = file.read(configLen)
     local channels = textutils.unserializeJSON(config) or {}
-
-    -- Debug: Write to log file for file parsing
-    local logFile = fs.open("debug.log", "w")
-    logFile.writeLine("=== DMDFPWM FILE Header Parsing Debug ===")
-    logFile.writeLine("Header offset calculation:")
-    logFile.writeLine("  Base offset (16 + 1): 17")
-    logFile.writeLine("  Metadata length: " .. metadataLen)
-    logFile.writeLine("  Config length byte at position: " .. (18 + metadataLen))
-    logFile.writeLine("  Config data from position: " .. (19 + metadataLen) .. " to " .. (18 + metadataLen + configLen))
-    logFile.writeLine("Raw config data (first 500 chars):")
-    logFile.writeLine(config:sub(1, 500))
-    logFile.writeLine("Raw config data (remaining chars):")
-    if #config > 500 then
-        logFile.writeLine(config:sub(501))
+    
+    -- Debug output
+    print("Metadata length: " .. metadataLen)
+    print("Config length: " .. configLen)
+    print("Config data length: " .. #config)
+    if #config > 0 then
+        print("Config preview: " .. config:sub(1, math.min(100, #config)))
     end
-    logFile.writeLine("Config length: " .. configLen)
-    logFile.writeLine("Attempting JSON parse...")
-    logFile.writeLine("Parsed channels type: " .. type(channels))
-    logFile.writeLine("Parsed channels length: " .. (channels and #channels or "nil"))
-    if channels then
-        logFile.writeLine("First channel: " .. textutils.serialize(channels[1] or "none"))
-    end
-    logFile.close()
-
-    print("Debug info written to debug.log")
     
     -- Calculate offsets (header + metadata_len_byte + metadata + config_len_bytes + config)
     local dataOffset = 16 + 1 + metadataLen + 2 + configLen
-    local totalDataLen = payloadLen - metadataLen - configLen - 2
+    local totalDataLen = payloadLen - 1 - metadataLen - 2 - configLen
     local bytesPerSecond = chunkSize * channelCount
     local totalSamples = math.floor(totalDataLen / bytesPerSecond)
     
@@ -362,10 +341,8 @@ local function setupSpeakers(player)
 end
 
 -- ========================================
--- PLAYBACK ENGINE - STREAMING OPTIMIZED
+-- PLAYBACK ENGINE
 -- ========================================
-
--- Note: Could likely be further optimized, however it is working fine in its current state
 
 local function playDFPWM(player)
     if not player then
@@ -376,6 +353,7 @@ local function playDFPWM(player)
     print("=== Track Info ===")
     print("Playing: " .. (player.metadata.title or "Unknown"))
     print("Artist: " .. (player.metadata.artist or "Unknown"))
+    print("Album: " .. (player.metadata.album or "Unknown"))
     print("Duration: " .. player.totalSamples .. " seconds")
     print("Channels: " .. player.channelCount)
     print("Source: " .. (player.isStreaming and "Streaming (URL)" or "Local File"))
@@ -387,6 +365,10 @@ local function playDFPWM(player)
         print(err)
         return
     end
+    
+    -- Clear all speakers before starting playback
+    print("Clearing speakers...")
+    clearAllSpeakers()
     
     -- Create DFPWM decoders for each channel
     local dfpwm = require("cc.audio.dfpwm")
@@ -435,12 +417,52 @@ local function playDFPWM(player)
     print("Press Ctrl+T to stop")
     print("")
     
-    -- Main streaming loop: download → decode → play → wait → repeat
-    for second = 1, player.totalSamples do
-        -- Step 1: Download this second's data
+    -- Prefill speaker buffers to ensure synchronized start
+    print("Buffering...")
+    local bufferSeconds = 1  -- Prefill 1 second
+    local prefillBuffers = {}
+    
+    for i = 1, player.channelCount do
+        prefillBuffers[i] = {}
+    end
+    
+    -- Decode the first few seconds
+    for second = 1, math.min(bufferSeconds, player.totalSamples) do
         local channels = getSample(player, second)
+        if channels then
+            for i, channelData in ipairs(channels) do
+                if channelData and #channelData > 0 and channelSpeakers[i] and #channelSpeakers[i] > 0 then
+                    local success, decodedAudio = pcall(decoders[i], channelData)
+                    if success and decodedAudio then
+                        table.insert(prefillBuffers[i], decodedAudio)
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Queue prefill buffers to all speakers
+    for i, buffer in ipairs(prefillBuffers) do
+        for _, decodedAudio in ipairs(buffer) do
+            for _, speaker in ipairs(channelSpeakers[i]) do
+                speaker.playAudio(decodedAudio)
+            end
+        end
+    end
+
+    -- Main playback loop: Queue to each speaker independently with speaker-specific events
+    -- Note: Prefill already the first second to ensure synchronized start
+    local currentSecond = bufferSeconds + 1
+    local lastProgressUpdate = 0
+    local playbackSecond = 1  -- Track actual playback position for progress display
+
+    print("Starting playback...")
+
+    while currentSecond <= player.totalSamples do
+        -- Step 1: Download this second's data
+        local channels = getSample(player, currentSecond)
         if not channels then
-            print("Error: Failed to download second " .. second)
+            print("Error: Failed to get second " .. currentSecond)
             break
         end
         
@@ -451,54 +473,38 @@ local function playDFPWM(player)
                 local success, decodedAudio = pcall(decoders[i], channelData)
                 if success and decodedAudio then
                     decodedChannels[i] = decodedAudio
-                else
-                    print("Warning: Failed to decode channel " .. i .. " at second " .. second)
                 end
             end
         end
         
-        -- Step 3: Play all decoded channels simultaneously to multiple speakers
-        local playSuccess = {}
+        -- Step 3: Queue to each speaker, waiting for THAT SPECIFIC speaker if needed
         for i, decodedAudio in ipairs(decodedChannels) do
-            playSuccess[i] = {}
-            for j = 1, #channelSpeakers[i] do
-                playSuccess[i][j] = false
-            end
-        end
-
-        -- Keep trying to play all channels on all their speakers until they're all accepted
-        while true do
-            local allQueued = true
-
-            for i, decodedAudio in ipairs(decodedChannels) do
-                for j, speaker in ipairs(channelSpeakers[i]) do
-                    if not playSuccess[i][j] then
-                        if speaker.playAudio(decodedAudio) then
-                            playSuccess[i][j] = true
-                        else
-                            allQueued = false
-                        end
-                    end
+            for _, speaker in ipairs(channelSpeakers[i]) do
+                -- Get the speaker's name for event matching
+                local speakerName = peripheral.getName(speaker)
+                
+                -- Try to queue, and if buffer is full, wait for THIS speaker specifically
+                while not speaker.playAudio(decodedAudio) do
+                    repeat
+                        local event, name = os.pullEvent("speaker_audio_empty")
+                    until name == speakerName
                 end
             end
-
-            if allQueued then
-                break
-            end
-
-            -- Step 4: Wait for speaker buffer space
-            os.pullEvent("speaker_audio_empty")
         end
         
-        -- Update progress every 10 seconds
-        if second % 10 == 0 or second == player.totalSamples then
-            local progress = math.floor((second / player.totalSamples) * 100)
+        currentSecond = currentSecond + 1
+        playbackSecond = playbackSecond + 1
+        
+        -- Update progress periodically
+        if os.clock() - lastProgressUpdate > 0.5 then
+            local progress = math.floor((playbackSecond / player.totalSamples) * 100)
             term.clearLine()
             term.setCursorPos(1, select(2, term.getCursorPos()))
-            write("Progress: " .. second .. "/" .. player.totalSamples .. " (" .. progress .. "%)")
+            write("Progress: " .. playbackSecond .. "/" .. player.totalSamples .. " (" .. progress .. "%)")
+            lastProgressUpdate = os.clock()
         end
     end
-    
+
     print("")
     print("Playback finished!")
 end
@@ -552,6 +558,7 @@ print("")
 playDFPWM(player)
 
 -- Cleanup
+clearAllSpeakers()  -- Clear speakers after playback ends
 if player.file then
     player.file.close()
 end

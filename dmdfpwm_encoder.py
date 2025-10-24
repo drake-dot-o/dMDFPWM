@@ -171,7 +171,7 @@ class DMDFPWMEncoder:
         """Get input file path from user (supports local files and HTTP URLs)"""
         while True:
             try:
-                input_path = input("Enter audio file path or HTTP URL (direct links to audio attachme): ").strip()
+                input_path = input("Enter audio file path or HTTP URL (direct links to audio attachments): ").strip()
 
                 if not input_path:
                     print("Please enter a file path or URL.")
@@ -295,82 +295,62 @@ class DMDFPWMEncoder:
         """Encode audio for a specific channel using FFmpeg's built-in DFPWM encoder"""
         try:
             channel_idx = channel_spec['index']
-
-            # Extract channel and apply any filters from the configuration
+            target_channel = channel_spec['name']
             channel_filter = channel_spec.get('filter', '')
 
-            # Map channel index to appropriate FFmpeg channel based on target channel name
-            target_channel = channel_spec['name']
-
-            # TODO: something is fucked with the center channels, dont use for now
-            # TODO: need to implement the thing with, for example, mixing FL+FR to 1 channel, and then mixing that to FC (0.5*FL+0.5*FR)
-            # ^^^ maybe this makes the other channels (FL/FR/BL/BR/SL/SR themselves) sound better too?
-            # Dru mentioned doing this with mdfpwm so it's certainly worth trying
-
+            # First, create a proper surround upmix, then extract the channel
+            # The surround filter does phase analysis for better channel separation
+            
             if target_channel == "FL":
-                pan_filter = "1c|c0=FL"  # Front left
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=FL"
             elif target_channel == "FR":
-                pan_filter = "1c|c0=FR"  # Front right
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=FR"
             elif target_channel == "FC":
-                # Mix FL+FR for Front Center
-                pan_filter = "1c|c0=0.5*FL+0.5*FR"
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=FC"
             elif target_channel == "LFE":
-                pan_filter = "1c|c0=LFE"
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=LFE"
+                # Backs: 10% of front + surround content
             elif target_channel == "BL":
-                pan_filter = "1c|c0=BL"  # Back left
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=0.1*FL+BL"
             elif target_channel == "BR":
-                pan_filter = "1c|c0=BR"  # Back right
-            elif target_channel == "BC":
-                # Mix BL+BR for Back Center
-                pan_filter = "1c|c0=0.5*BL+0.5*BR"
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=0.1*FR+BR"
+                # Sides: 30% of front + surround content
             elif target_channel == "SL":
-                pan_filter = "1c|c0=SL"  # Side left
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=0.3*FL+SL"
             elif target_channel == "SR":
-                pan_filter = "1c|c0=SR"  # Side right
+                pan_filter = "surround=chl_out=7.1,pan=mono|c0=0.3*FR+SR"
             else:
-                # Fallback: try to use the target channel name directly
-                # If that fails, simulate from stereo channels
-                try:
-                    pan_filter = f"1c|c0={target_channel}"
-                    print(f"  Trying direct channel mapping: {target_channel}")
-                except:
-                    print(f"  Warning: Channel {target_channel} not found in source, using silence")
-                    return b'\x55' * 1636771
+                print(f"  Warning: Unknown channel {target_channel}, using silence")
+                return b'\x55' * 1636771
 
-            # Build FFmpeg command with channel extraction and optional filtering
-            filters = [f'pan={pan_filter}']
-
-            # Add channel-specific filter if specified in config
+            # Build filter chain
+            filters = [pan_filter]
             if channel_filter:
                 filters.append(channel_filter)
-
+            
             filter_chain = ','.join(filters)
 
             cmd = [
-                'ffmpeg', '-y',  # -y to overwrite output files
-                '-i', input_file,  # Input file
-                '-filter:a', filter_chain,  # Apply channel extraction and filters
-                '-acodec', 'dfpwm',  # Use FFmpeg's built-in DFPWM encoder
-                '-ar', '48000',  # Sample rate (matches C# implementation)
-                '-ab', '48k',  # Audio bitrate: 48 kbps (1 bit per sample at 48kHz)
-                '-ac', '1',  # Mono output
+                'ffmpeg', '-y',
+                '-i', input_file,
+                '-filter:a', filter_chain,
+                '-acodec', 'dfpwm',
+                '-ar', '48000',
+                '-ab', '48k',
+                '-ac', '1',
             ]
 
-            # Output to DFPWM data directly
             temp_dfpwm = f"temp_channel_{channel_idx}.dfpwm"
             cmd.append(temp_dfpwm)
 
-            # Execute FFmpeg command
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
                 raise RuntimeError(f"FFmpeg failed: {result.stderr}")
 
-            # Read the DFPWM file
             with open(temp_dfpwm, 'rb') as f:
                 dfpwm_data = f.read()
 
-            # Clean up temporary file
             os.remove(temp_dfpwm)
 
             return dfpwm_data
@@ -409,21 +389,18 @@ class DMDFPWMEncoder:
         with open(output_file, 'wb') as f:
             f.write(header)
 
-            # Write artist, title, album as null-terminated strings
-            artist_bytes = artist.encode('utf-8') + b'\x00'
-            title_bytes = title.encode('utf-8') + b'\x00'
-            album_bytes = album.encode('utf-8') + b'\x00'
+            # Write metadata as JSON object
+            metadata = {
+                "artist": artist,
+                "title": title,
+                "album": album
+            }
+            metadata_json = json.dumps(metadata).encode('utf-8')
+            metadata_len = len(metadata_json)
 
-            # Calculate metadata length (artist + title + album)
-            metadata_len = len(artist_bytes) + len(title_bytes) + len(album_bytes)
-
-            # Write metadata length (1 byte) first
+            # Write metadata length (1 byte) and metadata
             f.write(bytes([metadata_len]))
-
-            # Then write the actual metadata
-            f.write(artist_bytes)
-            f.write(title_bytes)
-            f.write(album_bytes)
+            f.write(metadata_json)
 
             # Write channel configuration as JSON
             channel_config_json = json.dumps(channels).encode('utf-8')
@@ -435,7 +412,6 @@ class DMDFPWMEncoder:
 
             # Write audio payload
             f.write(audio_data)
-
 
 def main():
     # Check if any arguments were provided
@@ -523,13 +499,17 @@ def run_interactive():
     interleaved_data = encoder.interleave_audio_chunks(channel_data, chunk_size)
     print(f"Interleaved {len(interleaved_data)} bytes of audio data")
 
-    # Calculate payload length (artist + title + album + channel_config_len_bytes + channel_config + audio)
-    artist_bytes = artist.encode('utf-8') + b'\x00'
-    title_bytes = title.encode('utf-8') + b'\x00'
-    album_bytes = album.encode('utf-8') + b'\x00'
+    # Calculate payload length (metadata_len_byte + metadata_json + channel_config_len_bytes + channel_config + audio)
+    metadata = {
+        "artist": artist,
+        "title": title,
+        "album": album
+    }
+    metadata_json = json.dumps(metadata).encode('utf-8')
+    metadata_len = len(metadata_json)
     channel_config_json = json.dumps(channels).encode('utf-8')
     channel_config_len = len(channel_config_json)
-    payload_length = len(artist_bytes) + len(title_bytes) + len(album_bytes) + 1 + 2 + channel_config_len + len(interleaved_data)
+    payload_length = 1 + metadata_len + 2 + channel_config_len + len(interleaved_data)
 
     # Build header with correct payload length
     header = encoder.build_header(len(channels), chunk_size, payload_length)
@@ -558,9 +538,14 @@ def run_command_line():
     args = parser.parse_args()
 
     # Parse metadata
-    metadata = {}
+    parsed_metadata = {}
     if args.metadata:
-        metadata = json.loads(args.metadata)
+        parsed_metadata = json.loads(args.metadata)
+
+    # Extract artist, title, album from parsed metadata or default to empty
+    artist = parsed_metadata.get("artist", "")
+    title = parsed_metadata.get("title", "")
+    album = parsed_metadata.get("album", "")
 
     # Initialize encoder
     encoder = DMDFPWMEncoder()
@@ -636,20 +621,23 @@ def run_command_line():
     interleaved_data = encoder.interleave_audio_chunks(channel_data, args.chunk_size)
     print(f"Interleaved {len(interleaved_data)} bytes of audio data")
 
-    # Calculate payload length (artist + title + album + channel_config_len_bytes + channel_config + audio)
-    # For command line mode, use empty strings for track info
-    artist_bytes = b'' + b'\x00'
-    title_bytes = b'' + b'\x00'
-    album_bytes = b'' + b'\x00'
+    # Calculate payload length (metadata_len_byte + metadata_json + channel_config_len_bytes + channel_config + audio)
+    metadata = {
+        "artist": artist,
+        "title": title,
+        "album": album
+    }
+    metadata_json = json.dumps(metadata).encode('utf-8')
+    metadata_len = len(metadata_json)
     channel_config_json = json.dumps(channels).encode('utf-8')
     channel_config_len = len(channel_config_json)
-    payload_length = len(artist_bytes) + len(title_bytes) + len(album_bytes) + 1 + 2 + channel_config_len + len(interleaved_data)
+    payload_length = 1 + metadata_len + 2 + channel_config_len + len(interleaved_data)
 
     # Build header with correct payload length
     header = encoder.build_header(len(channels), args.chunk_size, payload_length)
 
     # Write final DMDFPWM file
-    encoder.write_dmdfpwm(args.output, header, '', '', '', channels, interleaved_data)
+    encoder.write_dmdfpwm(args.output, header, artist, title, album, channels, interleaved_data)
 
     print(f"Created DMDFPWM file: {args.output}")
     print(f"Total file size: {os.path.getsize(args.output)} bytes")
